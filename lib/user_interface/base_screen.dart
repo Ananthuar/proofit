@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../backend_function/db_helper.dart';
 import 'add_task_screen.dart';
 
@@ -41,13 +43,40 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
   }
 
   Future<void> _addTask(String title, String description) async {
-    await DBHelper().insertTask({'title': title, 'description': description, 'isCompleted': 0});
+    await DBHelper().insertTask({'title': title, 'description': description, 'isCompleted': 0, 'imagePath': ''});
     await _loadTasks();
   }
 
-  Future<void> _toggleComplete(int id, int currentStatus) async {
-    await DBHelper().updateTask(id, currentStatus == 1 ? 0 : 1);
-    await _loadTasks();
+  Future<void> _completeTaskWithImage(int id) async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+    if (pickedFile != null) {
+      await DBHelper().updateTask(id, 1, imagePath: pickedFile.path);
+      await _loadTasks();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Task marked as completed with proof!'),
+          duration: Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          margin: EdgeInsets.all(12),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Image is required to complete the task.'),
+          duration: Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          margin: EdgeInsets.all(12),
+        ),
+      );
+    }
   }
 
   Future<void> _deleteTask(int id) async {
@@ -58,12 +87,6 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
   Future<void> _clearAllTasks() async {
     await DBHelper().clearTasks();
     await _loadTasks();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
   }
 
   void _showClearAllDialog() {
@@ -98,6 +121,12 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
         ],
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 
   @override
@@ -180,18 +209,14 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
               children: [
                 Expanded(
                   child: GestureDetector(
-                    onTap: () {
-                      // Optionally show completed tasks only
-                    },
+                    onTap: () {},
                     child: _buildStatCard('Tasks Completed', completedCount.toString(), Colors.blue),
                   ),
                 ),
                 SizedBox(width: 16),
                 Expanded(
                   child: GestureDetector(
-                    onTap: () {
-                      // Optionally show pending tasks only
-                    },
+                    onTap: () {},
                     child: _buildStatCard('Pending Tasks', pendingCount.toString(), Colors.orange),
                   ),
                 ),
@@ -226,15 +251,26 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
                             trailing: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                IconButton(
-                                  icon: Icon(
-                                    task['isCompleted'] == 1
-                                        ? Icons.check_circle
-                                        : Icons.radio_button_unchecked,
-                                    color: task['isCompleted'] == 1 ? Colors.green : Colors.grey,
+                                if (task['isCompleted'] == 0)
+                                  IconButton(
+                                    icon: Icon(Icons.camera_alt, color: Colors.green),
+                                    onPressed: () => _completeTaskWithImage(task['id']),
                                   ),
-                                  onPressed: () => _toggleComplete(task['id'], task['isCompleted']),
-                                ),
+                                if (task['isCompleted'] == 1 && task['imagePath'] != null && task['imagePath'].isNotEmpty)
+                                  GestureDetector(
+                                    onTap: () {
+                                      showDialog(
+                                        context: context,
+                                        builder: (_) => Dialog(
+                                          child: Image.file(
+                                            File(task['imagePath']),
+                                            fit: BoxFit.cover,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                    child: Icon(Icons.check_circle, color: Colors.green),
+                                  ),
                                 IconButton(
                                   icon: Icon(Icons.delete, color: Colors.red),
                                   onPressed: () async {

@@ -20,16 +20,22 @@ class DBHelper {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: (db, version) async {
         await db.execute('''
           CREATE TABLE tasks(
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             title TEXT,
             description TEXT,
-            isCompleted INTEGER
+            isCompleted INTEGER,
+            imagePath TEXT
           )
         ''');
+      },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await db.execute('ALTER TABLE tasks ADD COLUMN imagePath TEXT');
+        }
       },
     );
   }
@@ -44,11 +50,15 @@ class DBHelper {
     return await db.query('tasks');
   }
 
-  Future<int> updateTask(int id, int isCompleted) async {
+  Future<int> updateTask(int id, int isCompleted, {String? imagePath}) async {
     final db = await database;
+    Map<String, dynamic> updateData = {'isCompleted': isCompleted};
+    if (imagePath != null) {
+      updateData['imagePath'] = imagePath;
+    }
     return await db.update(
       'tasks',
-      {'isCompleted': isCompleted},
+      updateData,
       where: 'id = ?',
       whereArgs: [id],
     );
