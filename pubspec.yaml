@@ -1,48 +1,34 @@
 name: proofit
 description: "ProofIt - To-do list with photographic proof for task completion."
-publish_to: 'none' # Keep private; remove if you want to publish to pub.dev
-
-# App version and build number
+publish_to: 'none'
 version: 1.0.0+1
 
-# Dart & Flutter SDK environment version
 environment:
   sdk: ^3.8.1
 
-# ---------------------------
-# Dependencies
-# ---------------------------
 dependencies:
   flutter:
     sdk: flutter
-  cupertino_icons: ^1.0.8 # iOS-style icons
+  cupertino_icons: ^1.0.8
+  sqflite: ^2.3.0
+  path: ^1.8.3
+  dependencies:
+  flutter_local_notifications: ^16.3.2
 
-# ---------------------------
-# Development dependencies
-# ---------------------------
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^5.0.0 # Recommended linting rules
-  flutter_launcher_icons: ^0.13.1 # For generating app icons
+  flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.13.1
 
-# ---------------------------
-# Flutter-specific settings
-# ---------------------------
 flutter:
   uses-material-design: true
-
-  # Asset files (images, icons, etc.)
   assets:
     - assets/icons/icon.png
 
-# ---------------------------
-# Flutter Launcher Icons Configuration
-# ---------------------------
 flutter_icons:
   android: true
   ios: true
-  image_path: "assets/icons/icon.png" # Main app icon
-  adaptive_icon_background: "#FFFFFF" # Android adaptive icon background
-  adaptive_icon_foreground: "assets/icons/icon.png" # Android adaptive icon foreground
-  
+  image_path: "assets/icons/icon.png"
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/icons/icon.png"
