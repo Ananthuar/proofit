@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../backend_function/db_helper.dart';
+import '../backend_function/image_verifier.dart';
 import 'add_task_screen.dart';
 import 'task_list_screen.dart';
 import 'notification_screen.dart';
@@ -58,19 +59,37 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
-      await DBHelper().updateTask(id, 1, imagePath: pickedFile.path);
-      await _loadTasks();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Task marked as completed with proof!'),
-          duration: Duration(seconds: 2),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+      final task = _tasks.firstWhere((t) => t['id'] == id);
+      final description = task['description'] ?? '';
+      final verified = ImageVerifier.verify(description, pickedFile.path);
+
+      if (verified) {
+        await DBHelper().updateTask(id, 1, imagePath: pickedFile.path);
+        await _loadTasks();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Image verified! Task marked as completed.'),
+            duration: Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            margin: EdgeInsets.all(12),
           ),
-          margin: EdgeInsets.all(12),
-        ),
-      );
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Image does not match the task description. Please upload a valid proof.'),
+            duration: Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            margin: EdgeInsets.all(12),
+          ),
+        );
+      }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
