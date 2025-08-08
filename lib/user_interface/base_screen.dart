@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../backend_function/db_helper.dart';
 import 'add_task_screen.dart';
+import 'task_list_screen.dart';
+import 'notification_screen.dart';
 
 class BaseScreen extends StatefulWidget {
   @override
@@ -15,6 +17,7 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
   List<Map<String, dynamic>> _tasks = [];
   int completedCount = 0;
   int pendingCount = 0;
+  List<String> _notifications = [];
 
   @override
   void initState() {
@@ -39,6 +42,10 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
       _tasks = data;
       completedCount = _tasks.where((t) => t['isCompleted'] == 1).length;
       pendingCount = _tasks.where((t) => t['isCompleted'] == 0).length;
+      _notifications = _tasks
+          .where((t) => t['isCompleted'] == 0)
+          .map<String>((t) => 'Pending: ${t['title']} - ${t['description']}')
+          .toList();
     });
   }
 
@@ -82,11 +89,48 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
   Future<void> _deleteTask(int id) async {
     await DBHelper().deleteTask(id);
     await _loadTasks();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Task deleted'),
+        duration: Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        margin: EdgeInsets.all(12),
+      ),
+    );
   }
 
   Future<void> _clearAllTasks() async {
+    final incompleteTasks = _tasks.where((t) => t['isCompleted'] != 1 || t['imagePath'] == null || t['imagePath'].isEmpty).toList();
+    if (incompleteTasks.isNotEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('All tasks must be completed with image before clearing.'),
+          duration: Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          margin: EdgeInsets.all(12),
+        ),
+      );
+      return;
+    }
     await DBHelper().clearTasks();
     await _loadTasks();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('All tasks cleared'),
+        duration: Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        margin: EdgeInsets.all(12),
+      ),
+    );
   }
 
   void _showClearAllDialog() {
@@ -94,7 +138,7 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
       context: context,
       builder: (context) => AlertDialog(
         title: Text('Clear All Tasks'),
-        content: Text('Are you sure you want to delete all tasks?'),
+        content: Text('Are you sure you want to delete all tasks? Only tasks completed with image can be deleted.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -104,21 +148,19 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
             onPressed: () async {
               Navigator.pop(context);
               await _clearAllTasks();
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('All tasks cleared'),
-                  duration: Duration(seconds: 2),
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  margin: EdgeInsets.all(12),
-                ),
-              );
             },
             child: Text('Clear', style: TextStyle(color: Colors.red)),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showNotifications() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => NotificationScreen(notifications: _notifications),
       ),
     );
   }
@@ -173,9 +215,7 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
         actions: [
           IconButton(
             icon: Icon(Icons.notifications, color: Colors.white),
-            onPressed: () {
-              // Notification icon action
-            },
+            onPressed: _showNotifications,
           ),
           IconButton(
             icon: Icon(Icons.delete_forever, color: Colors.white),
@@ -209,14 +249,36 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
               children: [
                 Expanded(
                   child: GestureDetector(
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => TaskListScreen(
+                            tasks: _tasks,
+                            title: 'Tasks Completed',
+                            showCompleted: true,
+                          ),
+                        ),
+                      );
+                    },
                     child: _buildStatCard('Tasks Completed', completedCount.toString(), Colors.blue),
                   ),
                 ),
                 SizedBox(width: 16),
                 Expanded(
                   child: GestureDetector(
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => TaskListScreen(
+                            tasks: _tasks,
+                            title: 'Pending Tasks',
+                            showCompleted: false,
+                          ),
+                        ),
+                      );
+                    },
                     child: _buildStatCard('Pending Tasks', pendingCount.toString(), Colors.orange),
                   ),
                 ),
@@ -274,18 +336,21 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
                                 IconButton(
                                   icon: Icon(Icons.delete, color: Colors.red),
                                   onPressed: () async {
-                                    await _deleteTask(task['id']);
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      SnackBar(
-                                        content: Text('Task deleted'),
-                                        duration: Duration(seconds: 2),
-                                        behavior: SnackBarBehavior.floating,
-                                        shape: RoundedRectangleBorder(
-                                          borderRadius: BorderRadius.circular(12),
+                                    if (task['isCompleted'] == 1 && task['imagePath'] != null && task['imagePath'].isNotEmpty) {
+                                      await _deleteTask(task['id']);
+                                    } else {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text('Complete the task with image before deletion.'),
+                                          duration: Duration(seconds: 2),
+                                          behavior: SnackBarBehavior.floating,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          margin: EdgeInsets.all(12),
                                         ),
-                                        margin: EdgeInsets.all(12),
-                                      ),
-                                    );
+                                      );
+                                    }
                                   },
                                 ),
                               ],
