@@ -1,4 +1,5 @@
 # proofit
+<<<<<<< HEAD
 
 A new Flutter project.
 
@@ -14,3 +15,6 @@ A few resources to get you started if this is your first Flutter project:
 For help getting started with Flutter development, view the
 [online documentation](https://docs.flutter.dev/), which offers tutorials,
 samples, guidance on mobile development, and a full API reference.
+=======
+ProofIt is a unique to-do list app that ensures tasks are not only completed but also proven. Users must upload photo proof to mark tasks as done, making it ideal for personal accountability, team tracking, or project management where evidence of task completion is essential.
+>>>>>>> ae32e8e41c5ae567db2298ca5b141410e322530f
