@@ -61,14 +61,14 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
     if (pickedFile != null) {
       final task = _tasks.firstWhere((t) => t['id'] == id);
       final description = task['description'] ?? '';
-      final verified = ImageVerifier.verify(description, pickedFile.path);
+      final verified = await ImageVerifier.verify(description, pickedFile.path);
 
       if (verified) {
         await DBHelper().updateTask(id, 1, imagePath: pickedFile.path);
         await _loadTasks();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Image verified! Task marked as completed.'),
+            content: Text('Image text verified! Task marked as completed.'),
             duration: Duration(seconds: 2),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
@@ -80,7 +80,7 @@ class _BaseScreenState extends State<BaseScreen> with SingleTickerProviderStateM
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Image does not match the task description. Please upload a valid proof.'),
+            content: Text('Image text does not match the task description. Please upload a valid proof.'),
             duration: Duration(seconds: 2),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
